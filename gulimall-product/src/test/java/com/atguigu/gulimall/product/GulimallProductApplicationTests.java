@@ -26,5 +26,10 @@ class GulimallProductApplicationTests {
             System.out.println(item);
         });
     }
-
+    @Test
+    public void test(){
+        String s1 = "http://localhost:88/api/product/category/list/tree";
+        String s2 = "http://localhost:88/api/product/category/list/tree";
+        System.out.println(s1==s2);
+    }
 }
