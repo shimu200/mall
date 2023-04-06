@@ -17,7 +17,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@RestController("/thirdparty")
+@RestController
 public class OssController {
 
     @Resource
@@ -33,7 +33,7 @@ public class OssController {
 
 
     @RequestMapping("/oss/policy")
-    public Map<String,String> policy() {
+    public R policy() {
 
 
 
@@ -74,6 +74,6 @@ public class OssController {
             System.out.println(e.getMessage());
         }
 
-        return respMap;
+        return R.ok().put("data",respMap);
     }
 }

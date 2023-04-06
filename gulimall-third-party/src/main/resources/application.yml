@@ -13,7 +13,7 @@ spring:
       secret-key: a20VqufSscT5E0dKI69hMs2FmltxC6
       oss:
         endpoint: oss-cn-beijing.aliyuncs.com
-        bucket: gulimall-hello
+        bucket: gulimall-hello303
 
 
   application:
