@@ -38,19 +38,9 @@ public class CategoryBrandRelationController {
      *  3、Controller接受Service处理完的数据，封装页面指定的vo
      */
     @GetMapping("/brands/list")
-    public R relationBrandsList(@RequestParam(value = "catId",required = true)Long catId){
-        List<BrandEntity> vos = categoryBrandRelationService.getBrandsByCatId(catId);
-
-        List<BrandVo> collect = vos.stream().map(item -> {
-            BrandVo brandVo = new BrandVo();
-            brandVo.setBrandId(item.getBrandId());
-            brandVo.setBrandName(item.getName());
-
-            return brandVo;
-        }).collect(Collectors.toList());
-
-        return R.ok().put("data",collect);
-
+    public R relationBrandsList(@RequestParam(value = "catId",required = true)String catId){
+        List<BrandVo> list = categoryBrandRelationService.getBrandByCatalogId(catId);
+        return R.ok().put("data",list);
     }
     /**
      * 获取当前品牌关联的所有分类列表

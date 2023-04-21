@@ -5,11 +5,14 @@ import com.atguigu.gulimall.product.dao.CategoryDao;
 import com.atguigu.gulimall.product.entity.BrandEntity;
 import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.BrandService;
+import com.atguigu.gulimall.product.vo.BrandVo;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,5 +89,18 @@ public class CategoryBrandRelationServiceImpl extends ServiceImpl<CategoryBrandR
             return byId;
         }).collect(Collectors.toList());
         return collect;
+    }
+
+    @Override
+    public List<BrandVo> getBrandByCatalogId(String catalogId) {
+        List<CategoryBrandRelationEntity> relationEntities = this.list(new QueryWrapper<CategoryBrandRelationEntity>().eq("catelog_id", catalogId));
+        if (relationEntities != null && relationEntities.size() > 0) {
+            return relationEntities.stream().map(relationEntity -> {
+                BrandVo brandVO = new BrandVo();
+                BeanUtils.copyProperties(relationEntity, brandVO);
+                return brandVO;
+            }).collect(Collectors.toList());
+        }
+        return new ArrayList<>();
     }
 }
