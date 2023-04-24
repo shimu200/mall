@@ -1,16 +1,17 @@
 package com.atguigu.gulimall.product.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.atguigu.gulimall.product.entity.CategoryBrandRelationEntity;
 import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -24,9 +25,14 @@ import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.CategoryService;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
+
 
 @Service("categoryService")
 public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity> implements CategoryService {
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+    private Map<String,Object> cache = new HashMap<>();
     @Autowired
     CategoryBrandRelationService categoryBrandRelationService;
     @Override
@@ -51,9 +57,32 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         List<CategoryEntity> categoryEntities = baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", 0));
         return categoryEntities;
     }
-
     @Override
     public Map<String, List<Catelog2Vo>> getCatalogJson() {
+        //缓存中放json字符串,拿出json字符串,逆转为可以使用的对象类型:[序列化和反序列化]
+        //1.加入缓存数据
+        String catalogJSON = redisTemplate.opsForValue().get("catalogJSON");
+        if(StringUtils.isEmpty(catalogJSON)){
+            //2.缓存中没有,查询数据
+            Map<String, List<Catelog2Vo>> catalogJsonFromDb = getCatalogJsonFromDb();
+            //3.查询到的数据放入缓存,将对象转为json放在缓存
+            String s = JSON.toJSONString(catalogJsonFromDb);
+            redisTemplate.opsForValue().set("catalogJSON", s);
+            return catalogJsonFromDb;
+        }
+        //转为指定的对象
+        Map<String, List<Catelog2Vo>> result = JSON.parseObject(catalogJSON, new TypeReference<Map<String, List<Catelog2Vo>>>(){});
+        return result;
+    }
+    //从数据库查询并封装分类数据
+    public Map<String, List<Catelog2Vo>> getCatalogJsonFromDb() {
+        //1. 如果缓存中有就用缓存的
+//        Map<String, List<Catelog2Vo>> catalogJson = (Map<String, List<Catelog2Vo>>) cache.get("catalogJson" == null);
+//        if(cache.get("catalogJson") == null){
+//            //返回数据又放入缓存
+//            cache.put("catalogJson",parent_cid);
+//        }
+//        return catalogJson;
         //1. 将数据库的多次查询变为一次
         List<CategoryEntity> selectList = baseMapper.selectList(null);
         //1. 查出所有的一级分类
