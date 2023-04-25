@@ -7,6 +7,7 @@ import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -37,6 +38,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     private Map<String, Object> cache = new HashMap<>();
     @Autowired
     CategoryBrandRelationService categoryBrandRelationService;
+    @Autowired
+    RedissonClient redissonClient;
 
     @Override
     public Long[] findCatelogPath(Long catelogId) {
