@@ -4,14 +4,13 @@ import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.CategoryService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
 import org.redisson.RedissonWriteLock;
-import org.redisson.api.RLock;
-import org.redisson.api.RReadWriteLock;
-import org.redisson.api.RedissonClient;
+import org.redisson.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 
@@ -28,22 +27,25 @@ public class IndexController {
     RedissonClient redisson;
     @Autowired
     RedisTemplate redisTemplate;
-    @GetMapping({"/","/index.html"})
-    public String indexPage(Model model){
+
+    @GetMapping({"/", "/index.html"})
+    public String indexPage(Model model) {
         //TODO 1.查出所有的一级分类
         List<CategoryEntity> categoryEntities = categoryService.getLevel1Categorys();
-        model.addAttribute("categorys",categoryEntities);
+        model.addAttribute("categorys", categoryEntities);
         return "index";
     }
+
     @ResponseBody
     @GetMapping("/index/catalog.json")
-    public Map<String, List<Catelog2Vo>> getCatalogJson(){
+    public Map<String, List<Catelog2Vo>> getCatalogJson() {
         Map<String, List<Catelog2Vo>> catalogJson = categoryService.getCatalogJson();
         return catalogJson;
     }
+
     @ResponseBody
     @GetMapping("/hello")
-    public String hello(){
+    public String hello() {
         //1. 获取一把锁
         RLock lock = redisson.getLock("my-lock");
         lock.lock(10, TimeUnit.SECONDS);
@@ -60,11 +62,11 @@ public class IndexController {
         // 最佳实战
         //1). lock.lock(10, TimeUnit.SECONDS); 省掉了整个续期操作,手动解锁
         try {
-            System.out.println("加锁成功,执行业务......"+Thread.currentThread().getId());
+            System.out.println("加锁成功,执行业务......" + Thread.currentThread().getId());
             Thread.sleep(30000);
         } catch (Exception e) {
 
-        }finally {
+        } finally {
             System.out.println("释放锁....");
             lock.unlock();
         }
@@ -78,44 +80,85 @@ public class IndexController {
     //读 + 写 有读锁,写锁也必须等待
     @GetMapping("/write")
     @ResponseBody
-    public String writeValue(){
+    public String writeValue() {
         RReadWriteLock lock = redisson.getReadWriteLock("rw-lock");
         String s = "";
         RLock rLock = lock.writeLock();
         try {
             //1. 改数据加写锁,读数据加读锁
             rLock.lock();
-            System.out.println("写锁加锁成功..."+Thread.currentThread().getId());
+            System.out.println("写锁加锁成功..." + Thread.currentThread().getId());
             s = UUID.randomUUID().toString();
             Thread.sleep(30000);
             redisTemplate.opsForValue().set("writeValue", s);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             rLock.unlock();
-            System.out.println("写锁释放..."+Thread.currentThread().getId());
+            System.out.println("写锁释放..." + Thread.currentThread().getId());
         }
-        return  s;
+        return s;
     }
 
     @GetMapping("/read")
     @ResponseBody
-    public String readValue(){
+    public String readValue() {
         RReadWriteLock lock = redisson.getReadWriteLock("rw-lock");
         String s = "";
         //加读锁
         RLock rLock = lock.readLock();
         rLock.lock();
         try {
-            System.out.println("读锁加锁成功..."+Thread.currentThread().getId());
+            System.out.println("读锁加锁成功..." + Thread.currentThread().getId());
             Thread.sleep(30000);
             s = (String) redisTemplate.opsForValue().get("writeValue");
         } catch (Exception e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             rLock.unlock();
-            System.out.println("读锁释放..."+Thread.currentThread().getId());
+            System.out.println("读锁释放..." + Thread.currentThread().getId());
         }
-        return  s;
+        return s;
+    }
+
+    @GetMapping("/lockdoor")
+    @ResponseBody
+    public String lockDoor() throws InterruptedException {
+        RCountDownLatch door = redisson.getCountDownLatch("door");
+        door.trySetCount(5);
+        door.await(); //等待闭锁完成
+        return "放假啦...";
+    }
+
+    @GetMapping("/gogogo/{id}")
+    @ResponseBody
+    public String gogogo(@PathVariable("id")Long id) {
+        RCountDownLatch door = redisson.getCountDownLatch("door");
+        door.countDown(); //计数减一
+        return id+"班的人都走了...";
+    }
+    /**
+     * 车库停车
+     */
+    @GetMapping("/park")
+    @ResponseBody
+    public String park() throws InterruptedException {
+        RSemaphore park = redisson.getSemaphore("park");
+//        park.acquire(); //获取一个信号
+        boolean b = park.tryAcquire();
+        if(b){
+            //执行业务
+        }else {
+            return "error";
+        }
+        return "ok=>"+b;
+
+    }
+    @GetMapping("/go")
+    @ResponseBody
+    public String go() throws InterruptedException {
+        RSemaphore park = redisson.getSemaphore("park");
+        park.release(); //获取一个信号
+        return "ok";
     }
 }
