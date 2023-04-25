@@ -7,6 +7,7 @@ import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
+import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,7 +40,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     @Autowired
     CategoryBrandRelationService categoryBrandRelationService;
     @Autowired
-    RedissonClient redissonClient;
+    RedissonClient redisson;
 
     @Override
     public Long[] findCatelogPath(Long catelogId) {
@@ -83,6 +84,24 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         return result;
     }
 
+    public Map<String, List<Catelog2Vo>> getCatalogJsonFromDbWithRedissonLock() {
+
+        RLock lock = redisson.getLock("CatalogJson-lock");
+        lock.lock();
+        System.out.println("获取分布式锁成功....");
+
+
+        Map<String, List<Catelog2Vo>> dataFromDb;
+        try {
+            dataFromDb = getDataFromDb();
+        } finally {
+           lock.unlock();
+        }
+
+        return getDataFromDb();
+
+    }
+
     public Map<String, List<Catelog2Vo>> getCatalogJsonFromDbWithRedisLock() {
         //1.占分布式锁,去redis占坑
         String uuid = UUID.randomUUID().toString();
@@ -98,8 +117,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
             } finally {
                 String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
                 //删除锁
-                Long lock1 = redisTemplate.execute(new DefaultRedisScript<Long>(script,Long.class)
-                        ,Arrays.asList("lock"),uuid);
+                Long lock1 = redisTemplate.execute(new DefaultRedisScript<Long>(script, Long.class)
+                        , Arrays.asList("lock"), uuid);
             }
             //获取值对比+对比成功删除=原子操作   lua脚本解锁
 //            String lockValue = redisTemplate.opsForValue().get("lock");
