@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,6 @@ import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.CategoryService;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
 
 
 @Service("categoryService")
@@ -59,13 +59,16 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         this.updateById(category);
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
-
+    //失效
+    @Cacheable(value = {"catagory"},key = "#root.method.name")//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
     @Override
     public List<CategoryEntity> getLevel1Categorys() {
+        System.out.println("getLevel1Categorys....");
+        Long l = System.currentTimeMillis();
         List<CategoryEntity> categoryEntities = baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", 0));
         return categoryEntities;
     }
-
+//    @Cacheable
     @Override
     public Map<String, List<Catelog2Vo>> getCatalogJson() {
         //缓存中放json字符串,拿出json字符串,逆转为可以使用的对象类型:[序列化和反序列化]
