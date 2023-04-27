@@ -52,7 +52,7 @@ spring:
           predicates:
             - Host=gulimall.com
 
-        - id: gulimall_host_route
+        - id: gulimall_search_route
           uri: lb://gulimall-search
           predicates:
             - Host=search.gulimall.com
