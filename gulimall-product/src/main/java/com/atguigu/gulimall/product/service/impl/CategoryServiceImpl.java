@@ -70,7 +70,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
     //失效
-    @Cacheable(value = {"category"},key = "#root.method.name")//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
+    @Cacheable(value = {"category"},key = "#root.method.name",sync = true)//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
     @Override
     public List<CategoryEntity> getLevel1Categorys() {
         System.out.println("getLevel1Categorys....");
