@@ -7,10 +7,14 @@ import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.validator.constraints.br.CPF;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -53,6 +57,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
     /**
      * 级联更新所有关联数据
      */
+//    @CacheEvict(value = {"catagory"},key = "'getLevel1Categorys'")
+//    @Caching(evict = {@CacheEvict(value = {"category"},key = "'getLevel1Categorys'"),
+//            @CacheEvict(value = {"category"},key = "'getCatalogJson'")
+//    })
+    @CacheEvict(value = "'category'",allEntries = true) //失效模式
+    @CachePut //双写模式
     @Transactional
     @Override
     public void updateCascade(CategoryEntity category) {
@@ -60,7 +70,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
     //失效
-    @Cacheable(value = {"catagory"},key = "#root.method.name")//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
+    @Cacheable(value = {"category"},key = "#root.method.name")//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
     @Override
     public List<CategoryEntity> getLevel1Categorys() {
         System.out.println("getLevel1Categorys....");
@@ -68,9 +78,39 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         List<CategoryEntity> categoryEntities = baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", 0));
         return categoryEntities;
     }
-//    @Cacheable
+    @Cacheable(value = "category",key = "#root.methodName")
     @Override
     public Map<String, List<Catelog2Vo>> getCatalogJson() {
+        System.out.println("查询了数据库....");
+        List<CategoryEntity> selectList = baseMapper.selectList(null);
+        List<CategoryEntity> level1Categorys = getParent_cid(selectList, 0L);
+        //2. 封装数据
+        Map<String, List<Catelog2Vo>> parent_cid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
+            //1. 每一个的一级分类,查到这个一级分类的二级分类
+            List<CategoryEntity> categoryEntities = getParent_cid(selectList, v.getCatId());
+            //2. 封装上面的结果
+            List<Catelog2Vo> catelog2Vos = null;
+            if (categoryEntities != null) {
+                catelog2Vos = categoryEntities.stream().map(l2 -> {
+                    Catelog2Vo catelog2Vo = new Catelog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName());
+                    //1. 找当前二级分类的三级分类封装成vo
+                    List<CategoryEntity> level3Catalog = getParent_cid(selectList, l2.getCatId());
+                    if (level3Catalog != null) {
+                        List<Catelog2Vo.Catelog3Vo> collect = level3Catalog.stream().map(l3 -> {
+                            Catelog2Vo.Catelog3Vo catelog3Vo = new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName().toString());
+                            return catelog3Vo;
+                        }).collect(Collectors.toList());
+                        catelog2Vo.setCatalog3List(collect);
+                    }
+                    return catelog2Vo;
+                }).collect(Collectors.toList());
+            }
+            return catelog2Vos;
+        }));
+        return parent_cid;
+    }
+
+    public Map<String, List<Catelog2Vo>> getCatalogJson2() {
         //缓存中放json字符串,拿出json字符串,逆转为可以使用的对象类型:[序列化和反序列化]
         //1.加入缓存数据
         String catalogJSON = redisTemplate.opsForValue().get("catalogJSON");
