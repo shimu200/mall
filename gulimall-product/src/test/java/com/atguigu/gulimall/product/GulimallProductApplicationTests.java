@@ -8,8 +8,12 @@ import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClient;
 //import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.OSSClientBuilder;
+import com.atguigu.gulimall.product.dao.AttrGroupDao;
+import com.atguigu.gulimall.product.dao.SkuSaleAttrValueDao;
 import com.atguigu.gulimall.product.entity.BrandEntity;
 import com.atguigu.gulimall.product.service.BrandService;
+import com.atguigu.gulimall.product.vo.SkuItemSaleAttrVo;
+import com.atguigu.gulimall.product.vo.SpuItemAttrGroupVo;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +40,20 @@ class GulimallProductApplicationTests {
     StringRedisTemplate stringRedisTemplate;
     @Autowired
     RedissonClient redissonClient;
+    @Autowired
+    AttrGroupDao attrGroupDao;
+    @Autowired
+    SkuSaleAttrValueDao skuSaleAttrValueDao;
+    @Test
+    public void test3(){
+        List<SkuItemSaleAttrVo> attrGroupVos = skuSaleAttrValueDao.getSaleAttrsBySpuId(2L);
+        System.out.println(attrGroupVos);
+    }
+    @Test
+    public void test2(){
+        List<SpuItemAttrGroupVo> attrGroupVos = attrGroupDao.getAttrGroupWithAttrsBySpuId(1L,225L);
+        System.out.println(attrGroupVos);
+    }
     @Test
     public void redisson(){
         System.out.println(redissonClient);
