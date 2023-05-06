@@ -14,8 +14,11 @@ spring:
       oss:
         endpoint: oss-cn-beijing.aliyuncs.com
         bucket: gulimall-hello303
-
-
+      sms:
+        method: POST
+        host: https://jmsms.market.alicloudapi.com
+        path: /sms/send
+        appcode: 2a6b28e506f84982b8d842620300eeb9
   application:
     name: gulimall-third-party
 server:
