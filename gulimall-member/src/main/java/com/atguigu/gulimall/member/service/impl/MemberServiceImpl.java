@@ -6,9 +6,12 @@ import com.atguigu.gulimall.member.exception.PhoneException;
 import com.atguigu.gulimall.member.exception.UsernameException;
 import com.atguigu.gulimall.member.vo.MemberLoginVo;
 import com.atguigu.gulimall.member.vo.MemberRegistVo;
+import com.atguigu.gulimall.member.vo.SocialUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.text.ParseException;
 import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -50,6 +53,7 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
 
         entity.setMobile(vo.getPhone());
         entity.setUsername(vo.getUserName());
+        entity.setNickname(vo.getUserName());
         //密码加密
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         String encode = passwordEncoder.encode(vo.getPassword());
@@ -96,6 +100,47 @@ public class MemberServiceImpl extends ServiceImpl<MemberDao, MemberEntity> impl
             return member;
         } else {
             return null;
+        }
+    }
+
+    @Override
+    public MemberEntity login(SocialUser socialUser) throws ParseException {
+        //登录和注册合并逻辑
+        MemberEntity member = new MemberEntity();
+        long socialId = socialUser.getId();
+        MemberDao memberDao = this.baseMapper;
+        //判断当前社交用户是否登录过
+        MemberEntity socialUid = memberDao.selectOne(new QueryWrapper<MemberEntity>().eq("social_uid", socialId));
+        if (socialUid !=null) {
+            //这个用户已经注册过了
+            MemberEntity entity = new MemberEntity();
+            entity.setAccessToken(socialUser.getAccess_token());
+            entity.setId(socialUid.getId());
+            entity.setUsername(socialUser.getName());
+            entity.setNickname(socialUser.getName());
+            entity.setRegisterType(1);
+            long expiresIn = socialUser.getExpires_in();
+            entity.setExpireIn((int)expiresIn);
+            entity.setSocialUid(Long.toString(socialId));
+            memberDao.updateById(entity);
+            return entity;
+        }else {
+            //没有就注册
+            MemberEntity memberRegist = new MemberEntity();
+            try {
+                if (socialUid.getId()!=null){
+                    memberRegist.setId(socialUid.getId());
+                }
+                memberRegist.setUsername(socialUser.getName());
+                memberRegist.setNickname(socialUser.getName());
+                memberRegist.setRegisterType(1);
+                memberRegist.setLevelId(1L);
+            }catch (Exception e){}
+            memberRegist.setExpireIn((int) socialUser.getExpires_in());
+            memberRegist.setSocialUid(Long.toString(socialId));
+            memberRegist.setAccessToken(socialUser.getAccess_token());
+            memberDao.insert(memberRegist);
+            return memberRegist;
         }
     }
 }

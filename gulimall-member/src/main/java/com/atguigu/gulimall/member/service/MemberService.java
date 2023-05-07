@@ -4,10 +4,12 @@ import com.atguigu.gulimall.member.exception.PhoneException;
 import com.atguigu.gulimall.member.exception.UsernameException;
 import com.atguigu.gulimall.member.vo.MemberLoginVo;
 import com.atguigu.gulimall.member.vo.MemberRegistVo;
+import com.atguigu.gulimall.member.vo.SocialUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.atguigu.common.utils.PageUtils;
 import com.atguigu.gulimall.member.entity.MemberEntity;
 
+import java.text.ParseException;
 import java.util.Map;
 
 /**
@@ -26,5 +28,6 @@ public interface MemberService extends IService<MemberEntity> {
     void checkUsernameUnique(String username) throws UsernameException;
 
     MemberEntity login(MemberLoginVo vo);
+    MemberEntity login(SocialUser socialUser) throws ParseException;
 }
 

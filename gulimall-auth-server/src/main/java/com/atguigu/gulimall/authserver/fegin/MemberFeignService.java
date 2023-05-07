@@ -1,5 +1,6 @@
 package com.atguigu.gulimall.authserver.fegin;
 import com.atguigu.common.utils.R;
+import com.atguigu.gulimall.authserver.entity.GiteeUserInfo;
 import com.atguigu.gulimall.authserver.vo.UserLoginVo;
 import com.atguigu.gulimall.authserver.vo.UserRegistVo;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -12,7 +13,8 @@ public interface MemberFeignService {
 
     @PostMapping("/member/member/login")
     R login(@RequestBody UserLoginVo vo);
-//
-//    @PostMapping(value = "/member/member/oauth2/login")
-//    R oauthLogin(@RequestBody GiteeUserInfo giteeUserInfo);
+
+
+    @PostMapping(value = "/member/member/oauth2/login")
+    R oauthLogin(@RequestBody GiteeUserInfo giteeUserInfo);
 }

@@ -18,6 +18,22 @@ import lombok.Data;
 @TableName("ums_member")
 public class MemberEntity implements Serializable {
 	private static final long serialVersionUID = 1L;
+	/**
+	 * 社交平台uid
+	 */
+	private String socialUid;
+	/**
+	 * 社交平台给的访问令牌
+	 */
+	private String accessToken;
+	/**
+	 * 当次令牌的过期时间，单位s
+	 */
+	private Integer expireIn;
+	/**
+	 * 注册类型[0-本平台，1-微博，2-微信]
+	 */
+	private Integer registerType;
 
 	/**
 	 * id
