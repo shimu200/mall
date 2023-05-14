@@ -57,10 +57,10 @@
                 <input type="button" value="搜索" class="one_right_btn">
             </div>
         </div>
-        <div class="one_search_load" th:if="${userId}==null">
+        <div class="one_search_load" th:if="${session.loginUser == null}">
             <img src="/static/cart/img/shop_07.jpg" class="one_load_wraing">
             <span>您还没有登录！登录后购物车的商品将保存到您账号中</span>
-            <a href="/static/cart/#"><input type="button" onclick="login()" value="立即登录" class="one_load_btn"></a>
+            <a href="#"><input type="button" onclick="login()" value="立即登录" class="one_load_btn"></a>
         </div>
     </div>
 </div>
@@ -119,8 +119,7 @@
                             </li>
                             <li style="font-weight:bold"><p class="zj">￥[[${#numbers.formatDecimal(item.totalPrice,3,2)}]]</p></li>
                             <li>
-                                <p>删除</p>
-
+                                <p class="deleteItemBtn" th:attr="skuId=${item.skuId}">删除</p>
                             </li>
                         </ol>
                     </div>
@@ -147,7 +146,7 @@
             </div>
             <div>
                 <ol>
-                    <li>总价:<span style="color:#e64346;font-weight:bold;font-size:16px;" class="fnt">￥0.00</span></li>
+                    <li>总价:<span style="color:#e64346;font-weight:bold;font-size:16px;" class="fnt">￥[[${#numbers.formatDecimal(cart.totalAmount,3,2)}]]</span></li>
 
                 </ol>
             </div>
@@ -172,7 +171,7 @@
         </dl>
     </div>
     <div>
-        <button type="button">删除</button>
+        <button type="button" onclick="deleteItem()">删除</button>
 
     </div>
 </div>
@@ -772,5 +771,20 @@
         var check = $(this).prop("checked");
         location.href = "http://cart.gulimall.com/checkItem?skuId="+skuId+"&check="+(check?1:0);
     })
+    $(".countOpsBtn").click(function(){
+        //1、skuId
+        var skuId = $(this).parent().attr("skuId");
+        var num = $(this).parent().find(".countOpsNum").text();
+        location.href = "http://cart.gulimall.com/countItem?skuId="+skuId+"&num="+num;
+    });
+    var deleteId = 0;
+    //删除购物项
+    function deleteItem(){
+        location.href = "http://cart.gulimall.com/deleteItem?skuId="+deleteId;
+    }
+
+    $(".deleteItemBtn").click(function () {
+        deleteId = $(this).attr("skuId");
+    });
 </script>
 </html>

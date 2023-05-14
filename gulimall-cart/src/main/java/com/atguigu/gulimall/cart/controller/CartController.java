@@ -20,6 +20,26 @@ import java.util.concurrent.ExecutionException;
 public class CartController {
     @Autowired
     CartService cartService;
+    /*
+    删除购物项/
+     */
+    @GetMapping("/deleteItem")
+    public String deleteItem(@RequestParam("skuId")Long skuId){
+        cartService.deleteItem(skuId);
+        return "redirect:http://cart.gulimall.com/cart.html";
+    }
+    /*
+    修改购物项数量
+     */
+    @GetMapping("countItem")
+    public String countItem(@RequestParam("skuId")Long skuId,
+                            @RequestParam("num")Integer num) {
+        cartService.changeItemCount(skuId, num);
+        return "redirect:http://cart.gulimall.com/cart.html";
+    }
+    /*
+    /当前是否被点击
+     */
     @GetMapping("/checkItem")
     public String checkItem(@RequestParam("skuId")Long skuId,
                             @RequestParam("check")Integer check){
