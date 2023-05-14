@@ -98,6 +98,63 @@ public class CartServiceImpl implements CartService {
         return cartItem;
     }
 
+    /**
+     * 获取用户登录或者未登录购物车里所有的数据
+     * @return
+     */
+    @Override
+    public Cart getCart() throws ExecutionException, InterruptedException {
+
+        Cart cart = new Cart();
+        UserInfoTo userInfoTo = CartInterceptor.threadLocal.get();
+        if (userInfoTo.getUserId() != null) {
+            //1、登录
+            String cartKey = CART_PREFIX + userInfoTo.getUserId();
+            //临时购物车的键
+            String temptCartKey = CART_PREFIX + userInfoTo.getUserKey();
+
+            //2、如果临时购物车的数据还未进行合并
+            List<CartItem> tempCartItems = getCartItems(temptCartKey);
+            if (tempCartItems != null) {
+                //临时购物车有数据需要进行合并操作
+                for (CartItem item : tempCartItems) {
+                    addToCart(item.getSkuId(),item.getCount());
+                }
+                //清除临时购物车的数据
+                clearCart(temptCartKey);
+            }
+
+            //3、获取登录后的购物车数据【包含合并过来的临时购物车的数据和登录后购物车的数据】
+            List<CartItem> cartItems = getCartItems(cartKey);
+            cart.setItems(cartItems);
+
+        } else {
+            //没登录
+            String cartKey = CART_PREFIX + userInfoTo.getUserKey();
+            //获取临时购物车里面的所有购物项
+            List<CartItem> cartItems = getCartItems(cartKey);
+            cart.setItems(cartItems);
+        }
+
+        return cart;
+    }
+
+    @Override
+    public void checkItem(Long skuId, Integer check) {
+
+        //查询购物车里面的商品
+        CartItem cartItem = getCartItem(skuId);
+        //修改商品状态
+        cartItem.setCheck(check == 1);
+
+        //序列化存入redis中
+        String redisValue = JSON.toJSONString(cartItem);
+
+        BoundHashOperations<String, Object, Object> cartOps = getCartOps();
+        cartOps.put(skuId.toString(),redisValue);
+
+    }
+
 
     /**
      * 获取到我们要操作的购物车
@@ -115,6 +172,23 @@ public class CartServiceImpl implements CartService {
 
         BoundHashOperations<String, Object, Object> operations = redisTemplate.boundHashOps(cartKey);
         return operations;
+    }
+    private List<CartItem> getCartItems(String cartKey){
+        BoundHashOperations<String, Object, Object> hashOps = redisTemplate.boundHashOps(cartKey);
+        List<Object> values = hashOps.values();
+        if(values!=null && values.size()>0){
+            List<CartItem> collect = values.stream().map((obj) -> {
+                String str = (String) obj;
+                CartItem cartItem = JSON.parseObject(str, CartItem.class);
+                return cartItem;
+            }).collect(Collectors.toList());
+            return collect;
+        }
+        return null;
+    }
+
+    public void clearCart(String cartkey){
+        redisTemplate.delete(cartkey);
     }
 
 }
