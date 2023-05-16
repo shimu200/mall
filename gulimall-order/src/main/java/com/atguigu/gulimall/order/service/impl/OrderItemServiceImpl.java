@@ -1,5 +1,12 @@
 package com.atguigu.gulimall.order.service.impl;
 
+import com.atguigu.gulimall.order.entity.OrderEntity;
+import com.atguigu.gulimall.order.entity.OrderReturnReasonEntity;
+
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.annotation.RabbitHandler;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import java.util.Map;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -25,5 +32,15 @@ public class OrderItemServiceImpl extends ServiceImpl<OrderItemDao, OrderItemEnt
 
         return new PageUtils(page);
     }
-
+    @RabbitListener(queues = "hello-java-queue")
+    public void receiveMassage(Message message, OrderReturnReasonEntity content){
+        byte[] body = message.getBody();
+        MessageProperties properties = message.getMessageProperties();
+        System.out.println("接收到消息...的内容："+message+"===>类型："+message);
+    }
+    @RabbitHandler
+    public void recieveMessage2(OrderEntity content) throws InterruptedException {
+        //{"id":1,"name":"哈哈","sort":null,"status":null,"createTime":1581144531744}
+        System.out.println("接收到消息..."+content);
+    }
 }
