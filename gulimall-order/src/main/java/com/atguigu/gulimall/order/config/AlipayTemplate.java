@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Data
 public class AlipayTemplate {
-
     //在支付宝创建的应用的id
     private   String app_id = "2021000122693198";
 
@@ -23,7 +22,7 @@ public class AlipayTemplate {
     private  String alipay_public_key = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArNMO4qpHHqDh8VbSnihtdDqJu2CikTrbMjwBZ4wQ8fbhsvxRno8XNvDRBUq2MpuYIL5EWz2/2iQMHWQYanascMABi18mHWzIBdkAFtP9dYo46cYV+0qarCb+Ch/T2Xaok7R2d495l7QMhMs6ZOUxIMBlWwymC4GS44GpDbS87ylZ5eKz4twUKHUjFvDUZna0d8v6krLlwhrCkGCJJKa8vbhiZAjGK675E+9QkXZMI++WmqEgld4j2H4W6O5ufHRs/199I1joYnw9Lk8QUKocVdGyBcd2xgRjnXS6m/AXg1VnG/9X82DyjKN9DLFIM16fGbudG13EO33R4kZkJDoFqQIDAQAB";
     // 服务器[异步通知]页面路径  需http://格式的完整路径，不能加?id=123这类自定义参数，必须外网可以正常访问
     // 支付宝会悄悄的给我们发送一个请求，告诉我们支付成功的信息
-    private  String notify_url=  "http://497n86m7k7.52http.net/payed/notify";
+    private  String notify_url=  "http://7424981c9r.goho.co/payed/notify";
 
     // 页面跳转同步通知页面路径 需http://格式的完整路径，不能加?id=123这类自定义参数，必须外网可以正常访问
     //同步通知，支付成功，一般跳转到成功页
@@ -34,6 +33,7 @@ public class AlipayTemplate {
 
     // 字符编码格式
     private  String charset = "utf-8";
+    private String timeout = "30m";
 
     // 支付宝网关； https://openapi.alipaydev.com/gateway.do
     private  String gatewayUrl = "https://openapi.alipaydev.com/gateway.do";
@@ -64,7 +64,9 @@ public class AlipayTemplate {
                 + "\"total_amount\":\""+ total_amount +"\","
                 + "\"subject\":\""+ subject +"\","
                 + "\"body\":\""+ body +"\","
+                + "\"timeout_express\":\""+timeout+"\","
                 + "\"product_code\":\"FAST_INSTANT_TRADE_PAY\"}");
+
 
         String result = alipayClient.pageExecute(alipayRequest).getBody();
 
