@@ -18,17 +18,41 @@ public class SeckillController {
     @Autowired
     SeckillService seckillService;
 
+
     /**
      * 返回当前时间可以参与的秒杀商品信息
-     *
      * @return
      */
     @ResponseBody
     @GetMapping("/currentSeckillSkus")
-    public R getCurrentSeckillSkus() {
+    public R getCurrentSeckillSkus(){
         log.info("currentSeckillSkus正在执行。。。");
+
         List<SecKillSkuRedisTo> vos = seckillService.getCurrentSeckillSkus();
         return R.ok().setData(vos);
+    }
+    @ResponseBody
+    @GetMapping("/sku/seckill/{skuId}")
+    public R getSkuSeckillInfo(@PathVariable("skuId") Long skuId){
 
+        try {
+            Thread.sleep(300);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        SecKillSkuRedisTo to =  seckillService.getSkuSeckillInfo(skuId);
+        return R.ok().setData(to);
+    }
+    @GetMapping("/kill")
+    public String secKill(@RequestParam("killId") String killId,
+                          @RequestParam("key") String key,
+                          @RequestParam("num") Integer num,
+                          Model model){
+
+        String orderSn =  seckillService.kill(killId,key,num);
+
+        model.addAttribute("orderSn",orderSn);
+        //1、判断是否登录
+        return "success";
     }
 }
