@@ -48,7 +48,7 @@ public class IndexController {
     public String hello() {
         //1. 获取一把锁
         RLock lock = redisson.getLock("my-lock");
-        lock.lock(10, TimeUnit.SECONDS);
+        lock.lock(10, TimeUnit.SECONDS);// 尝试获取锁，最多等待10秒
         //2. 加锁,默认加30s
 //        lock.lock(); //阻塞式等待
         //1)锁的自动续期,如果运行时间超长,运行期间自动给锁续上新的30s

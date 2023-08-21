@@ -33,11 +33,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import javax.annotation.Resource;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class GulimallSearchApplicationTests {
+	public static ExecutorService executor = Executors.newFixedThreadPool(10);
 
+	public static void main(String[] args) {
+		System.out.println("start");
+		CompletableFuture<Void> future = CompletableFuture.runAsync(()->{
+			System.out.println("当前线程--"+Thread.currentThread().getId());
+			int i = 10/2;
+			System.out.println("运行结果"+i);
+		},executor);
+		System.out.println("end");
+	}
 
 	@Resource
 	private RestHighLevelClient client;

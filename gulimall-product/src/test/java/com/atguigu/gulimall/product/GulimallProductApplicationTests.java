@@ -93,8 +93,12 @@ class GulimallProductApplicationTests {
     }
     @Test
     public void test(){
-        String s1 = "http://localhost:88/api/product/category/list/tree";
-        String s2 = "http://localhost:88/api/product/category/list/tree";
-        System.out.println(s1==s2);
+        ValueOperations<String, String> ops = stringRedisTemplate.opsForValue();
+        ops.set("hello", "world"+UUID.randomUUID().toString());
+        ops.set("hello2", "world"+UUID.randomUUID().toString());
+        ops.set("hello3", "world"+UUID.randomUUID().toString());
+        System.out.println(ops.get("hello"));
+        System.out.println(ops.get("hello2"));
+        System.out.println(ops.get("hello3"));
     }
 }

@@ -2,38 +2,31 @@ package com.atguigu.gulimall.product.service.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.TypeReference;
-import com.atguigu.gulimall.product.entity.CategoryBrandRelationEntity;
+import com.atguigu.common.utils.PageUtils;
+import com.atguigu.common.utils.Query;
+import com.atguigu.gulimall.product.dao.CategoryDao;
+import com.atguigu.gulimall.product.entity.CategoryEntity;
 import com.atguigu.gulimall.product.service.CategoryBrandRelationService;
+import com.atguigu.gulimall.product.service.CategoryService;
 import com.atguigu.gulimall.product.vo.Catelog2Vo;
-import io.swagger.annotations.ApiOperation;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.apache.commons.lang.StringUtils;
-import org.hibernate.validator.constraints.br.CPF;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.atguigu.common.utils.PageUtils;
-import com.atguigu.common.utils.Query;
-
-import com.atguigu.gulimall.product.dao.CategoryDao;
-import com.atguigu.gulimall.product.entity.CategoryEntity;
-import com.atguigu.gulimall.product.service.CategoryService;
-import org.springframework.transaction.annotation.Transactional;
-
 
 
 @Service("categoryService")
@@ -61,7 +54,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 //    @Caching(evict = {@CacheEvict(value = {"category"},key = "'getLevel1Categorys'"),
 //            @CacheEvict(value = {"category"},key = "'getCatalogJson'")
 //    })
-    @CacheEvict(value = "'category'",allEntries = true) //失效模式
+    @CacheEvict(value = "'category'", allEntries = true) //失效模式
     @CachePut //双写模式
     @Transactional
     @Override
@@ -69,8 +62,9 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         this.updateById(category);
         categoryBrandRelationService.updateCategory(category.getCatId(), category.getName());
     }
+
     //失效
-    @Cacheable(value = {"category"},key = "#root.method.name",sync = true)//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
+    @Cacheable(value = {"category"}, key = "#root.method.name", sync = true)//key直接写方法名也行，不过这里是spel表达式，字符需要加单引号
     @Override
     public List<CategoryEntity> getLevel1Categorys() {
         System.out.println("getLevel1Categorys....");
@@ -78,26 +72,28 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         List<CategoryEntity> categoryEntities = baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", 0));
         return categoryEntities;
     }
-    @Cacheable(value = "category",key = "#root.methodName")
+
+    @Cacheable(value = "category", key = "#root.methodName")
     @Override
     public Map<String, List<Catelog2Vo>> getCatalogJson() {
-        System.out.println("查询了数据库....");
+        System.out.println("查询了数据库.....");
         List<CategoryEntity> selectList = baseMapper.selectList(null);
         List<CategoryEntity> level1Categorys = getParent_cid(selectList, 0L);
-        //2. 封装数据
+        //2、封装数据
         Map<String, List<Catelog2Vo>> parent_cid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
-            //1. 每一个的一级分类,查到这个一级分类的二级分类
+            //1、每一个的一级分类，查到这个一级分类的二级分类
             List<CategoryEntity> categoryEntities = getParent_cid(selectList, v.getCatId());
-            //2. 封装上面的结果
+            //2、封装上面面的结果
             List<Catelog2Vo> catelog2Vos = null;
             if (categoryEntities != null) {
                 catelog2Vos = categoryEntities.stream().map(l2 -> {
                     Catelog2Vo catelog2Vo = new Catelog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName());
-                    //1. 找当前二级分类的三级分类封装成vo
-                    List<CategoryEntity> level3Catalog = getParent_cid(selectList, l2.getCatId());
-                    if (level3Catalog != null) {
-                        List<Catelog2Vo.Catelog3Vo> collect = level3Catalog.stream().map(l3 -> {
-                            Catelog2Vo.Catelog3Vo catelog3Vo = new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName().toString());
+                    //1、找当前二级分类的三级分类封装成vo
+                    List<CategoryEntity> level3Catelog = getParent_cid(selectList, l2.getCatId());
+                    if (level3Catelog != null) {
+                        List<Catelog2Vo.Catelog3Vo> collect = level3Catelog.stream().map(l3 -> {
+                            //2、封装成指定格式
+                            Catelog2Vo.Catelog3Vo catelog3Vo = new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName());
                             return catelog3Vo;
                         }).collect(Collectors.toList());
                         catelog2Vo.setCatalog3List(collect);
@@ -110,6 +106,14 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         return parent_cid;
     }
 
+    //TODO 产生堆外内存溢出：OutOfDirectMemoryError
+    //1）、springboot2.0以后默认使用lettuce作为操作redis的客户端。它使用netty进行网络通信。
+    //2）、lettuce的bug导致netty堆外内存溢出 -Xmx300m；netty如果没有指定堆外内存，默认使用-Xmx300m
+    //   可以通过-Dio.netty.maxDirectMemory进行设置
+    //解决方案：不能使用-Dio.netty.maxDirectMemory只去调大堆外内存。
+    //1）、升级lettuce客户端。   2）、切换使用jedis
+    //  redisTemplate：
+    //  lettuce、jedis操作redis的底层客户端。Spring再次封装redisTemplate；
     public Map<String, List<Catelog2Vo>> getCatalogJson2() {
         //缓存中放json字符串,拿出json字符串,逆转为可以使用的对象类型:[序列化和反序列化]
         //1.加入缓存数据
@@ -138,10 +142,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
         try {
             dataFromDb = getDataFromDb();
         } finally {
-           lock.unlock();
+            lock.unlock();
         }
 
-        return getDataFromDb();
+        return dataFromDb;
 
     }
 
@@ -183,31 +187,34 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
     private Map<String, List<Catelog2Vo>> getDataFromDb() {
         String catalogJSON = redisTemplate.opsForValue().get("catalogJSON");
-        if (!StringUtils.isEmpty(catalogJSON)) {
-            //缓存不为空直接返回
+        if (!org.springframework.util.StringUtils.isEmpty(catalogJSON)) {
+            //缓存不为null直接返回
             Map<String, List<Catelog2Vo>> result = JSON.parseObject(catalogJSON, new TypeReference<Map<String, List<Catelog2Vo>>>() {
             });
             return result;
         }
-        System.out.println("查询了数据库....");
+        System.out.println("查询了数据库.....");
 
         List<CategoryEntity> selectList = baseMapper.selectList(null);
 
+
         List<CategoryEntity> level1Categorys = getParent_cid(selectList, 0L);
-        //2. 封装数据
+
+        //2、封装数据
         Map<String, List<Catelog2Vo>> parent_cid = level1Categorys.stream().collect(Collectors.toMap(k -> k.getCatId().toString(), v -> {
-            //1. 每一个的一级分类,查到这个一级分类的二级分类
+            //1、每一个的一级分类，查到这个一级分类的二级分类
             List<CategoryEntity> categoryEntities = getParent_cid(selectList, v.getCatId());
-            //2. 封装上面的结果
+            //2、封装上面面的结果
             List<Catelog2Vo> catelog2Vos = null;
             if (categoryEntities != null) {
                 catelog2Vos = categoryEntities.stream().map(l2 -> {
                     Catelog2Vo catelog2Vo = new Catelog2Vo(v.getCatId().toString(), null, l2.getCatId().toString(), l2.getName());
-                    //1. 找当前二级分类的三级分类封装成vo
-                    List<CategoryEntity> level3Catalog = getParent_cid(selectList, l2.getCatId());
-                    if (level3Catalog != null) {
-                        List<Catelog2Vo.Catelog3Vo> collect = level3Catalog.stream().map(l3 -> {
-                            Catelog2Vo.Catelog3Vo catelog3Vo = new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName().toString());
+                    //1、找当前二级分类的三级分类封装成vo
+                    List<CategoryEntity> level3Catelog = getParent_cid(selectList, l2.getCatId());
+                    if (level3Catelog != null) {
+                        List<Catelog2Vo.Catelog3Vo> collect = level3Catelog.stream().map(l3 -> {
+                            //2、封装成指定格式
+                            Catelog2Vo.Catelog3Vo catelog3Vo = new Catelog2Vo.Catelog3Vo(l2.getCatId().toString(), l3.getCatId().toString(), l3.getName());
                             return catelog3Vo;
                         }).collect(Collectors.toList());
                         catelog2Vo.setCatalog3List(collect);
@@ -215,13 +222,18 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
                     return catelog2Vo;
                 }).collect(Collectors.toList());
             }
+
+
             return catelog2Vos;
         }));
-        //3.查询到的数据放入缓存,将对象转为json放在缓存
+
+
+        //3、查到的数据再放入缓存，将对象转为json放在缓存中
         String s = JSON.toJSONString(parent_cid);
         redisTemplate.opsForValue().set("catalogJSON", s, 1, TimeUnit.DAYS);
         return parent_cid;
     }
+
 
     //从数据库查询并封装分类数据
     public Map<String, List<Catelog2Vo>> getCatalogJsonFromDbWithLocalLock() {
@@ -240,8 +252,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, CategoryEntity
 
     private List<CategoryEntity> getParent_cid(List<CategoryEntity> selectList, Long parent_cid) {
         List<CategoryEntity> collect = selectList.stream().filter(item -> item.getParentCid() == parent_cid).collect(Collectors.toList());
+        //return baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", v.getCatId()));
         return collect;
-//        return baseMapper.selectList(new QueryWrapper<CategoryEntity>().eq("parent_cid", v.getCatId()));
     }
 
     private List<Long> findParentPath(Long catelogId, List<Long> paths) {
