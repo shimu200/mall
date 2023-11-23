@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    username: root
+    password: root
+    url: jdbc:mysql://192.168.52.10:3306/gulimall_pms?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+    alicloud:
+      access-key: LTAI5tQhWGP5NtcMLSAjghUN
+      secret-key: a20VqufSscT5E0dKI69hMs2FmltxC6
+      oss:
+        endpoint: oss-cn-beijing.aliyuncs.com
+        bucket: gulimall-hello303
+      sms:
+        method: POST
+        host: https://jmsms.market.alicloudapi.com
+        path: /sms/send
+        appcode: 2a6b28e506f84982b8d842620300eeb9
+  application:
+    name: gulimall-third-party
+server:
+  port: 30000
